@@ -197,13 +197,41 @@ async function runAiFullAnalysis(
   const totalReviewCount = rawReviews.length;
   const analyzedReviewCount = rawReviews.length;
 
-  const { deep, trustGrade: aiGrade, trustScore } = await analyzeReviewsDeepWithAI({
+  const { deep } = await analyzeReviewsDeepWithAI({
     productTitle: ctx.productTitle,
     reviews: rawReviews,
   });
 
   // AI가 준 verdict가 없거나 id 매칭 실패하면 neutral로 간주한다.
   const verdictById = new Map(deep.reviews.map((r) => [r.id, r]));
+
+  // ─── trustScore 결정론적 재계산 ───
+  // AI가 돌려준 trustScore는 편향(대체로 관대)이 심해서 무시하고,
+  // verdict 분포 + crossReview 수로 우리가 직접 산정한다.
+  //
+  //   base = 100
+  //     - suspicious 수 × 12
+  //     - crossReview(중복/템플릿 클러스터) 수 × 10
+  //     + trustworthy 수 × 2 (최대 +15)
+  //
+  // 예상:
+  //   suspicious 0, trust 7 → 100 (clamp) "좋음"
+  //   suspicious 2 → 76              "좋음"
+  //   suspicious 4 + cluster 1 → 52  "보통"
+  //   suspicious 6 + cluster 1 → 28  "주의"
+  const susCount = deep.reviews.filter((r) => r.verdict === "suspicious").length;
+  const trustCount = deep.reviews.filter((r) => r.verdict === "trustworthy").length;
+  const clusterCount = deep.crossReview.length;
+  const trustBonus = Math.min(15, trustCount * 2);
+  const rawScore = 100 - susCount * 12 - clusterCount * 10 + trustBonus;
+  const trustScore = Math.max(0, Math.min(100, Math.round(rawScore)));
+
+  // trustGrade도 우리가 점수 기준으로 재산정
+  const aiGrade: "good" | "middle" | "caution" =
+    trustScore >= 75 ? "good" : trustScore >= 50 ? "middle" : "caution";
+  console.log(
+    `[analyzer] AI verdict 분포: suspicious=${susCount} trust=${trustCount} cluster=${clusterCount} → trustScore=${trustScore}`,
+  );
 
   const verdictToTrustLabel = (v: "suspicious" | "neutral" | "trustworthy"): TrustLabel => {
     if (v === "suspicious") return "주의";
