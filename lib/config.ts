@@ -38,9 +38,11 @@ export const OPENAI_MODEL = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
 // 이 이하로는 규칙 기반 대신 AI full analysis로 해석한다.
 // (10개 = $0.005 정도. 20개까진 여유.)
 export const AI_FULL_ANALYSIS_MAX_REVIEWS = 20;
-// OpenAI 호출 전체 timeout. deep analysis는 3~8초, summary는 2~4초 걸려서 25초면 충분.
+// OpenAI 호출 전체 timeout.
+// deep analysis 는 few-shot 추가 후 gpt-4o-mini 기준 15~30초 걸림.
+// Vercel/Railway maxDuration=60s 한도 내에서 여유 있게 50s.
 // 무한 대기 방지용 안전장치.
-export const OPENAI_TIMEOUT_MS = 25000;
+export const OPENAI_TIMEOUT_MS = 50000;
 
 // scraper
 export const FETCH_TIMEOUT_MS = 8000;

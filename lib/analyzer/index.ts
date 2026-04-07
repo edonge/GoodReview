@@ -58,9 +58,15 @@ export async function analyzeReviews(
       );
       return await runAiFullAnalysis(rawReviews, ctx);
     } catch (err) {
+      const msg = (err as Error).message;
       console.warn(
-        `[analyzer] AI full analysis 실패 → 규칙 기반 fallback: ${(err as Error).message}`,
+        `[analyzer] ⚠️ AI full analysis 실패 → 규칙 기반 fallback: ${msg}`,
       );
+      if (/aborted|timeout/i.test(msg)) {
+        console.warn(
+          `[analyzer] ⏱️  timeout 으로 잘림. OPENAI_TIMEOUT_MS 늘려보거나, 모델/프롬프트를 가볍게 해야 해요. 규칙 기반 점수는 보통 관대하게 나옵니다.`,
+        );
+      }
     }
   }
 
@@ -141,6 +147,12 @@ export async function analyzeReviews(
     .filter((r) => r.trustLabel === "주의")
     .sort((a, b) => b.suspicionScore - a.suspicionScore)
     .slice(0, SUMMARY_REPRESENTATIVE_COUNT.suspicious);
+
+  console.log(
+    `[analyzer] 📊 규칙 기반 결과: trustScore=${trustScore} grade=${trustGrade} ` +
+      `trustworthy=${trustworthyCount} middle=${middleCount} suspicious=${suspiciousCount} ` +
+      `(평균 의심도=${avgSuspicion.toFixed(1)})`,
+  );
 
   // 5) AI 요약
   const aiSummary = await generateSummary({
