@@ -160,6 +160,16 @@ export async function analyzeReviewsDeepWithAI(
     })),
   };
 
+  // ─── 📥 GPT에 보낼 입력 로깅 ───
+  // GPT가 본 데이터 그대로 콘솔에 박는다. 응답 로그와 짝맞춰서 검수 가능.
+  console.log(
+    `[aiAnalyzer] ━━━━━━━━━━ GPT 입력 (product="${input.productTitle}", ${input.reviews.length}건) ━━━━━━━━━━`,
+  );
+  input.reviews.forEach((r, i) => {
+    const preview = r.text.replace(/\s+/g, " ").slice(0, 200);
+    console.log(`[aiAnalyzer] [#${i + 1} id=${r.id} ★${r.rating}] ${preview}${r.text.length > 200 ? "…" : ""}`);
+  });
+
   const userPrompt = `아래 상품의 리뷰 ${input.reviews.length}개를 분석해서 정확히 아래 JSON 스키마로 응답해.
 
 스키마:
@@ -202,6 +212,47 @@ ${JSON.stringify(userPayload, null, 2)}`;
   if (!content) throw new Error("OpenAI deep response missing content");
 
   const parsed: RawAiJson = JSON.parse(content);
+
+  // ─── 🔬 GPT 원본 응답 로깅 ───
+  // 프롬프트 튜닝/하이브리드 판단을 위해 GPT가 무엇을 보고 어떻게 판정했는지
+  // 그대로 콘솔에 박는다. Railway Logs에서 검수 가능.
+  console.log(
+    `[aiAnalyzer] ━━━━━━━━━━ GPT 원본 응답 (model=${OPENAI_MODEL}) ━━━━━━━━━━`,
+  );
+  console.log(`[aiAnalyzer] GPT 자체 판정: trustGrade=${parsed.trustGrade} trustScore=${parsed.trustScore}`);
+  console.log(`[aiAnalyzer] headline: ${parsed.headline}`);
+  if (Array.isArray(parsed.reviews)) {
+    parsed.reviews.forEach((r, i) => {
+      const rr = r as Record<string, unknown>;
+      const sus = Array.isArray(rr.suspiciousFlags) ? (rr.suspiciousFlags as unknown[]) : [];
+      const trs = Array.isArray(rr.trustSignals) ? (rr.trustSignals as unknown[]) : [];
+      console.log(
+        `[aiAnalyzer] [#${i + 1} id=${rr.id}] verdict=${rr.verdict} conf=${rr.confidence} sus=${sus.length} trust=${trs.length}`,
+      );
+      console.log(`[aiAnalyzer]   oneLiner: ${rr.oneLiner}`);
+      sus.forEach((f) => {
+        const ff = f as Record<string, unknown>;
+        console.log(`[aiAnalyzer]   🚩 ${ff.label} | "${String(ff.quote ?? "").slice(0, 60)}" → ${ff.why}`);
+      });
+      trs.forEach((f) => {
+        const ff = f as Record<string, unknown>;
+        console.log(`[aiAnalyzer]   ✅ ${ff.label} | "${String(ff.quote ?? "").slice(0, 60)}" → ${ff.why}`);
+      });
+    });
+  }
+  if (Array.isArray(parsed.crossReview) && parsed.crossReview.length > 0) {
+    parsed.crossReview.forEach((c, i) => {
+      const cc = c as Record<string, unknown>;
+      console.log(
+        `[aiAnalyzer] 🔗 cluster#${i + 1} type=${cc.type} ids=${JSON.stringify(cc.reviewIds)} reason=${cc.reason}`,
+      );
+      const phrases = Array.isArray(cc.sharedPhrases) ? (cc.sharedPhrases as unknown[]) : [];
+      phrases.forEach((p) => console.log(`[aiAnalyzer]    공통 문구: "${p}"`));
+    });
+  } else {
+    console.log(`[aiAnalyzer] 🔗 crossReview: 없음`);
+  }
+  console.log(`[aiAnalyzer] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
 
   const sanitize = (s: string) =>
     s

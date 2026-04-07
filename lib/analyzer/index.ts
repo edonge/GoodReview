@@ -220,18 +220,40 @@ async function runAiFullAnalysis(
   //   suspicious 4 + cluster 1 → 52  "보통"
   //   suspicious 6 + cluster 1 → 28  "주의"
   const susCount = deep.reviews.filter((r) => r.verdict === "suspicious").length;
+  const neutralCount = deep.reviews.filter((r) => r.verdict === "neutral").length;
   const trustCount = deep.reviews.filter((r) => r.verdict === "trustworthy").length;
   const clusterCount = deep.crossReview.length;
   const trustBonus = Math.min(15, trustCount * 2);
-  const rawScore = 100 - susCount * 12 - clusterCount * 10 + trustBonus;
+  const susPenalty = susCount * 12;
+  const clusterPenalty = clusterCount * 10;
+  const rawScore = 100 - susPenalty - clusterPenalty + trustBonus;
   const trustScore = Math.max(0, Math.min(100, Math.round(rawScore)));
 
   // trustGrade도 우리가 점수 기준으로 재산정
   const aiGrade: "good" | "middle" | "caution" =
     trustScore >= 75 ? "good" : trustScore >= 50 ? "middle" : "caution";
+
+  // ─── 🧮 점수 산정 근거 로깅 ───
+  // 왜 이 점수가 나왔는지 한 줄로 분명하게.
   console.log(
-    `[analyzer] AI verdict 분포: suspicious=${susCount} trust=${trustCount} cluster=${clusterCount} → trustScore=${trustScore}`,
+    `[analyzer] 🧮 trustScore 산정: 100 - sus(${susCount}×12=${susPenalty}) - cluster(${clusterCount}×10=${clusterPenalty}) + trust_bonus(min(15, ${trustCount}×2)=${trustBonus}) = ${trustScore} → ${aiGrade}`,
   );
+  console.log(
+    `[analyzer] verdict 분포: suspicious=${susCount} neutral=${neutralCount} trustworthy=${trustCount} (총 ${deep.reviews.length}건)`,
+  );
+
+  // ─── ⚠️ Sanity check ───
+  // 5건 이상인데 suspicious가 0이면 GPT가 너무 관대했을 가능성. 경고만 띄움.
+  if (deep.reviews.length >= 5 && susCount === 0) {
+    console.warn(
+      `[analyzer] ⚠️ GPT가 ${deep.reviews.length}건 중 suspicious를 0개로 판정했어요. 프롬프트가 관대하거나 진짜로 깨끗한 풀일 수 있어요. 위 GPT 원본 응답 로그 검토 필요.`,
+    );
+  }
+  if (deep.reviews.length >= 5 && neutralCount === deep.reviews.length) {
+    console.warn(
+      `[analyzer] ⚠️ GPT가 모든 리뷰를 neutral로 판정. 판단 회피 신호.`,
+    );
+  }
 
   const verdictToTrustLabel = (v: "suspicious" | "neutral" | "trustworthy"): TrustLabel => {
     if (v === "suspicious") return "주의";
