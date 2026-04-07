@@ -47,7 +47,40 @@ reviewIds와 sharedPhrases를 반드시 채워.
 - 모든 설명(headline/reason/oneLiner/why 등)은 **해요체**. 단정 표현("확실히", "100%", "광고다") 금지.
 - quote는 반드시 원문에서 **정확히** 복사. 요약/편집 금지. 하이라이트에 쓸 거야.
 - trustGrade/trustScore는 네가 판단해서 적어도 되지만, 우리는 별도로 재계산하니까 부담 갖지 마. **verdict 분류가 진짜 중요해.**
-- 10개 리뷰 중에서 suspicious가 0개로 나올 일은 현실적으로 드물어. 증거가 보이면 주저 말고 분류해.`;
+- 10개 리뷰 중에서 suspicious가 0개로 나올 일은 현실적으로 드물어. 증거가 보이면 주저 말고 분류해.
+
+## Few-shot 예시 (이대로 판정해)
+
+### 예시 A — suspicious로 분류해야 하는 리뷰
+입력:
+  id: "ex-a"
+  rating: 5
+  text: "굿\\n전반적으로 만족스러운 제품입니다. 유기농 인증을 받았고 BRC food, kosher, 할랄 인증까지 갖춘 점이 인상적이었습니다. 함량도 22%로 높고 당도 6.2g으로 적절합니다. 가성비가 뛰어나며 자신 있게 추천드립니다. 앞으로도 꾸준히 구매할 계획입니다. <도움이 돼요> 클릭해주세요. ▪️▪️⬇️⬇️"
+
+올바른 판정:
+  verdict: "suspicious"
+  confidence: 90
+  oneLiner: "제목은 한 글자, 본문은 스펙과 인증 나열로 가득한 카탈로그식 리뷰예요."
+  suspiciousFlags:
+    - { label: "제목↔본문 불균형", quote: "굿", why: "제목 1자에 본문은 정돈된 장문이라 자연스러운 작성 흐름이 아니에요." }
+    - { label: "인증/수치 나열 과다", quote: "BRC food, kosher, 할랄 인증까지 갖춘 점이 인상적이었습니다", why: "실제 먹어본 감상이 아니라 제품 소개문 톤이에요." }
+    - { label: "홍보문 상투어", quote: "가성비가 뛰어나며 자신 있게 추천드립니다", why: "광고/체험단에서 자주 보이는 정형 표현이에요." }
+    - { label: "캠페인 사인 블록", quote: "<도움이 돼요> 클릭해주세요", why: "체험단/서포터즈 마무리 블록이에요." }
+
+### 예시 B — trustworthy로 분류해야 하는 리뷰
+입력:
+  id: "ex-b"
+  rating: 4
+  text: "16개월 아기 아침으로 4번째 재구매 중이에요. 처음엔 죽 거부해서 걱정이었는데 이건 잘 먹어요. 다만 세게 누르면 내용물이 살짝 튀어요ㅠㅠ 가격은 좀 있는 편."
+
+올바른 판정:
+  verdict: "trustworthy"
+  confidence: 85
+  oneLiner: "16개월 아기 4번째 재구매라며 단점도 솔직히 짚어주는 리뷰예요."
+  trustSignals:
+    - { label: "구체적 시점/사용자", quote: "16개월 아기 아침으로 4번째 재구매", why: "실제 사용 맥락이 드러나요." }
+    - { label: "단점도 솔직히 언급", quote: "세게 누르면 내용물이 살짝 튀어요", why: "광고성 리뷰가 잘 안 짚는 디테일이에요." }
+    - { label: "구어체/감탄사", quote: "걱정이었는데 이건 잘 먹어요", why: "일상 톤의 자연스러운 후기예요." }`;
 
 const SCHEMA_HINT = `{
   "headline": "string - 전체 총평 한 문장 (해요체)",
@@ -148,7 +181,7 @@ ${JSON.stringify(userPayload, null, 2)}`;
       },
       body: JSON.stringify({
         model: OPENAI_MODEL,
-        temperature: 0.2,
+        temperature: 0,
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: SYSTEM_PROMPT },

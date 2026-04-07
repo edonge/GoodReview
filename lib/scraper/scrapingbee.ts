@@ -31,18 +31,26 @@ import {
 import type { RawReview } from "@/lib/types";
 
 // 크레딧 절약용 파일 시스템 캐시.
-// 성공한 productId의 HTML을 .scrapingbee-cache/{productId}.html로 저장.
-// 다음부터는 ScrapingBee 호출 없이 이 파일에서 직접 파싱 → 파싱 튜닝 비용 0.
+//
+// 두 단계로 읽는다:
+//  1) fixtures/scrapingbee/{id}.html  ← git에 커밋된 read-only fixture.
+//     Railway 재배포해도 항상 존재 → 과제 시연용 productId는 영구적으로 크레딧 0.
+//  2) .scrapingbee-cache/{id}.html    ← 런타임에 새로 받은 HTML 캐시.
+//     로컬에서만 살아남고 Railway 재배포 시엔 날아감.
+const FIXTURE_DIR = path.join(process.cwd(), "fixtures", "scrapingbee");
 const FS_CACHE_DIR = path.join(process.cwd(), ".scrapingbee-cache");
 
-function fsCacheRead(productId: string): string | null {
-  try {
-    const p = path.join(FS_CACHE_DIR, `${productId}.html`);
-    if (!fs.existsSync(p)) return null;
-    return fs.readFileSync(p, "utf-8");
-  } catch {
-    return null;
+function fsCacheRead(productId: string): { html: string; from: string } | null {
+  for (const dir of [FIXTURE_DIR, FS_CACHE_DIR]) {
+    try {
+      const p = path.join(dir, `${productId}.html`);
+      if (!fs.existsSync(p)) continue;
+      return { html: fs.readFileSync(p, "utf-8"), from: dir };
+    } catch {
+      // 다음 후보로
+    }
   }
+  return null;
 }
 
 function fsCacheWrite(productId: string, html: string): void {
@@ -85,13 +93,14 @@ export async function scrapeCoupangViaScrapingBee(
     throw new Error("쿠팡 상품 URL에서 productId를 찾지 못했어요.");
   }
 
-  // 크레딧 절약: 디스크 캐시가 있으면 ScrapingBee 호출 생략.
-  const cachedHtml = fsCacheRead(productId);
-  if (cachedHtml) {
+  // 크레딧 절약: fixtures(읽기 전용) → 런타임 캐시 순으로 확인.
+  const cached = fsCacheRead(productId);
+  if (cached) {
+    const isFixture = cached.from === FIXTURE_DIR;
     console.log(
-      `[scrapingbee] 💾 fs cache HIT productId=${productId} (크레딧 소비 0)`,
+      `[scrapingbee] 💾 cache HIT productId=${productId} from=${isFixture ? "fixture" : "fs"} (크레딧 소비 0)`,
     );
-    const $c = cheerio.load(cachedHtml);
+    const $c = cheerio.load(cached.html);
     const titleC =
       $c('meta[property="og:title"]').attr("content")?.trim() ||
       $c("title").text().trim() ||
