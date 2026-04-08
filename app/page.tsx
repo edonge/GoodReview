@@ -67,9 +67,7 @@ export default function HomePage() {
           이 상품 리뷰, <span className="text-brand-600">믿어도 될까요?</span>
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-gray-600 sm:text-base">
-          링크 한 줄이면 충분해요. 광고 같은 리뷰와 진짜 후기를
-          <br className="hidden sm:block" />
-          {" "}AI 가 한눈에 가려서 보여드려요.
+          링크만 넣으면 AI 가 광고 같은 리뷰와 진짜 후기를 가려드려요.
         </p>
 
         <div className="mt-5 inline-flex rounded-xl bg-gray-100 p-1 text-xs font-semibold">
@@ -103,9 +101,9 @@ export default function HomePage() {
                 <textarea
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
-                  placeholder={"쿠팡 상품 링크 또는 앱 공유 텍스트 그대로 붙여넣기\n예: https://link.coupang.com/a/XXXXXX"}
-                  rows={3}
-                  className="w-full resize-y rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-base outline-none transition focus:border-brand-500 focus:bg-white focus:ring-2 focus:ring-brand-100"
+                  placeholder="쿠팡 링크 붙여넣기 (앱 공유 텍스트도 OK)"
+                  rows={2}
+                  className="w-full resize-y rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm leading-relaxed outline-none transition placeholder:text-gray-400 focus:border-brand-500 focus:bg-white focus:ring-2 focus:ring-brand-100 sm:text-base"
                   disabled={loading}
                 />
               </label>
