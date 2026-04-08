@@ -15,6 +15,7 @@ import { fetchAndParse } from "./fetch";
 import { parsePastedReviews } from "./text";
 import { getMockResult } from "./mock";
 import { isCoupangUrl, scrapeCoupangViaScrapingBee } from "./scrapingbee";
+import { normalizeInputUrl } from "./normalize";
 
 export interface ScraperRequest {
   url?: string;
@@ -50,6 +51,15 @@ export async function collectReviews(req: ScraperRequest): Promise<ScraperResult
         fallbackUsed: false,
         collectionStatus: "text",
       };
+    }
+  }
+
+  // URL 정규화: 공유 텍스트에서 URL 만 뽑아내고, 쿠팡 단축 링크는 실제 URL 로 풀어둠.
+  if (req.url) {
+    const normalized = await normalizeInputUrl(req.url);
+    if (normalized && normalized !== req.url) {
+      console.log(`[scraper] URL 정규화: ${req.url} → ${normalized}`);
+      req = { ...req, url: normalized };
     }
   }
 

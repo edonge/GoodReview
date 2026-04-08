@@ -100,13 +100,12 @@ export default function HomePage() {
             <>
               <label className="block">
                 <span className="mb-1 block text-sm font-medium text-gray-700">상품 링크</span>
-                <input
-                  type="text"
-                  inputMode="url"
+                <textarea
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
-                  placeholder="예: https://www.coupang.com/vp/products/..."
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-base outline-none transition focus:border-brand-500 focus:bg-white focus:ring-2 focus:ring-brand-100"
+                  placeholder={"쿠팡 상품 링크 또는 앱 공유 텍스트 그대로 붙여넣기\n예: https://link.coupang.com/a/XXXXXX"}
+                  rows={3}
+                  className="w-full resize-y rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-base outline-none transition focus:border-brand-500 focus:bg-white focus:ring-2 focus:ring-brand-100"
                   disabled={loading}
                 />
               </label>

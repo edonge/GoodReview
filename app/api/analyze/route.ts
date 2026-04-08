@@ -36,11 +36,11 @@ export async function POST(req: Request) {
   }
 
   if (url) {
-    try {
-      new URL(url);
-    } catch {
+    // 멀티라인 공유 텍스트도 허용 — 안에 http(s) URL 한 줄만 있으면 OK.
+    // 실제 정규화/단축링크 해석은 collectReviews 에서 수행.
+    if (!/https?:\/\//i.test(url)) {
       return NextResponse.json(
-        { error: "유효한 URL 형식이 아니에요. (예: https://...)" },
+        { error: "링크가 포함되지 않았어요. https:// 로 시작하는 주소를 넣어주세요." },
         { status: 400 },
       );
     }
