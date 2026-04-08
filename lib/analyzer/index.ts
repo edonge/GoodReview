@@ -238,7 +238,11 @@ async function runAiFullAnalysis(
   const trustBonus = Math.min(15, trustCount * 2);
   const susPenalty = susCount * 12;
   const clusterPenalty = clusterCount * 10;
-  const rawScore = 100 - susPenalty - clusterPenalty + trustBonus;
+  // neutral 은 GPT 가 판단을 회피했거나 애매하게 카탈로그스러운 경우가 많아서
+  // 작은 페널티를 준다 (건당 -2). 무가산보다 살짝 보수적.
+  const neutralPenalty = neutralCount * 2;
+  const rawScore =
+    100 - susPenalty - clusterPenalty - neutralPenalty + trustBonus;
   const trustScore = Math.max(0, Math.min(100, Math.round(rawScore)));
 
   // trustGrade도 우리가 점수 기준으로 재산정
@@ -248,7 +252,7 @@ async function runAiFullAnalysis(
   // ─── 🧮 점수 산정 근거 로깅 ───
   // 왜 이 점수가 나왔는지 한 줄로 분명하게.
   console.log(
-    `[analyzer] 🧮 trustScore 산정: 100 - sus(${susCount}×12=${susPenalty}) - cluster(${clusterCount}×10=${clusterPenalty}) + trust_bonus(min(15, ${trustCount}×2)=${trustBonus}) = ${trustScore} → ${aiGrade}`,
+    `[analyzer] 🧮 trustScore 산정: 100 - sus(${susCount}×12=${susPenalty}) - cluster(${clusterCount}×10=${clusterPenalty}) - neutral(${neutralCount}×2=${neutralPenalty}) + trust_bonus(min(15, ${trustCount}×2)=${trustBonus}) = ${trustScore} → ${aiGrade}`,
   );
   console.log(
     `[analyzer] verdict 분포: suspicious=${susCount} neutral=${neutralCount} trustworthy=${trustCount} (총 ${deep.reviews.length}건)`,

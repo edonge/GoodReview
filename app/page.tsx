@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AnalysisResult } from "@/lib/types";
 
-const EXAMPLE_URL = "https://www.coupang.com/vp/products/123456789";
 const EXAMPLE_TEXT = `★5
 정말 만족해요!! 강추합니다 짱짱!!!
 
@@ -68,9 +67,9 @@ export default function HomePage() {
           이 상품 리뷰, <span className="text-brand-600">믿어도 될까요?</span>
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-gray-600 sm:text-base">
-          상품 링크나 리뷰 텍스트를 입력하면, 광고처럼 보이는 리뷰와
+          링크 한 줄이면 충분해요. 광고 같은 리뷰와 진짜 후기를
           <br className="hidden sm:block" />
-          진짜 도움이 되는 리뷰를 한눈에 정리해드려요.
+          {" "}AI 가 한눈에 가려서 보여드려요.
         </p>
 
         <div className="mt-5 inline-flex rounded-xl bg-gray-100 p-1 text-xs font-semibold">
@@ -111,20 +110,8 @@ export default function HomePage() {
                   disabled={loading}
                 />
               </label>
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                <span>예시:</span>
-                <button
-                  type="button"
-                  onClick={() => setUrl(EXAMPLE_URL)}
-                  className="rounded-md bg-gray-100 px-2 py-1 text-gray-700 hover:bg-gray-200"
-                  disabled={loading}
-                >
-                  {EXAMPLE_URL}
-                </button>
-              </div>
               <p className="text-[11px] leading-relaxed text-gray-400">
-                ※ 일부 쇼핑몰은 자동 수집이 차단돼요. 그런 경우 자동으로 예시 데이터로
-                fallback되거나, 아래 직접 붙여넣기 모드를 활용해주세요.
+                ※ 리뷰 수집과 AI 분석에 20~40초 정도 걸려요. 페이지를 닫지 말고 잠시만 기다려주세요.
               </p>
             </>
           ) : (
